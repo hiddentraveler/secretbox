@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -32,17 +34,39 @@ func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
 	return f, nil
 }
 
+type application struct {
+	errorLog *log.Logger
+	infoLog  *log.Logger
+}
+
 func main() {
+	addr := flag.String("addr", ":8000", "HTTP network address")
+	flag.Parse()
+
+	infolog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorlog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+	app := &application{
+		infoLog:  infolog,
+		errorLog: errorlog,
+	}
+
 	mux := http.NewServeMux()
 
 	fileserver := http.FileServer(neuteredFileSystem{http.Dir("./ui/static/")})
 
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet/new", snipNew)
-	mux.HandleFunc("/snippet/view", snipView)
+	mux.HandleFunc("/", app.home)
+	mux.HandleFunc("/snippet/new", app.snipNew)
+	mux.HandleFunc("/snippet/view", app.snipView)
 	mux.Handle("/static/", http.StripPrefix("/static", fileserver))
 
-	log.Println("starting the server on :4000")
-	err := http.ListenAndServe(":4000", mux)
-	log.Fatalln(err)
+	srv := &http.Server{
+		Addr:     *addr,
+		ErrorLog: errorlog,
+		Handler:  mux,
+	}
+
+	infolog.Printf("starting the server %s", *addr)
+	err := srv.ListenAndServe()
+	errorlog.Fatalln(err)
 }
