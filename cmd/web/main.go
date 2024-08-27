@@ -51,19 +51,10 @@ func main() {
 		errorLog: errorlog,
 	}
 
-	mux := http.NewServeMux()
-
-	fileserver := http.FileServer(neuteredFileSystem{http.Dir("./ui/static/")})
-
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/snippet/new", app.snipNew)
-	mux.HandleFunc("/snippet/view", app.snipView)
-	mux.Handle("/static/", http.StripPrefix("/static", fileserver))
-
 	srv := &http.Server{
 		Addr:     *addr,
 		ErrorLog: errorlog,
-		Handler:  mux,
+		Handler:  app.Routes(),
 	}
 
 	infolog.Printf("starting the server %s", *addr)
