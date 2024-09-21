@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -40,8 +39,10 @@ type application struct {
 }
 
 func main() {
-	addr := flag.String("addr", ":8000", "HTTP network address")
-	flag.Parse()
+	addr := os.Getenv("PORT")
+	if addr == "" {
+		addr = ":3000"
+	}
 
 	infolog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorlog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
@@ -52,12 +53,12 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:     *addr,
+		Addr:     addr,
 		ErrorLog: errorlog,
 		Handler:  app.Routes(),
 	}
 
-	infolog.Printf("starting the server %s", *addr)
+	infolog.Printf("starting the server %s", addr)
 	err := srv.ListenAndServe()
 	errorlog.Fatalln(err)
 }
