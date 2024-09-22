@@ -55,6 +55,11 @@ func main() {
 		errorLog: errorlog,
 	}
 
+	err := app.initTemplates()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	srv := &http.Server{
 		Addr:     addr,
 		ErrorLog: errorlog,
@@ -62,6 +67,6 @@ func main() {
 	}
 
 	infolog.Printf("starting the server %s", port)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	errorlog.Fatalln(err)
 }
