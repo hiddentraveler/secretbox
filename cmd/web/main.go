@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/wailsapp/wails/v2/pkg/templates"
 )
 
 type neuteredFileSystem struct {
@@ -34,8 +36,9 @@ func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
 }
 
 type application struct {
-	errorLog *log.Logger
-	infoLog  *log.Logger
+	templates *templates.Template
+	errorLog  *log.Logger
+	infoLog   *log.Logger
 }
 
 func main() {

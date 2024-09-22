@@ -7,12 +7,7 @@ import (
 	"strconv"
 )
 
-func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		app.notFound(w)
-		return
-	}
-
+func (app *application) initTemplates() error {
 	files := []string{
 		"./ui/html/base.tmpl",
 		"./ui/html/partials/nav.tmpl",
@@ -21,14 +16,23 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		app.serverError(w, err)
+		return err
+	}
+
+	// Store the parsed templates in the app struct
+	app.templates = ts
+	return nil
+}
+
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		app.notFound(w)
 		return
 	}
 
-	err = ts.ExecuteTemplate(w, "base", nil)
+	err := app.templates.ExecuteTemplate(w, "base", nil)
 	if err != nil {
 		app.serverError(w, err)
-		return
 	}
 
 }
