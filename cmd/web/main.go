@@ -1,45 +1,47 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"strconv"
+	"path/filepath"
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
-	// serve 404 page when url path is not found
-	if r.URL.Path != "/" {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
-		return
-	}
-	_, _ = w.Write([]byte("Hello World"))
+type neuteredFileSystem struct {
+	fs http.FileSystem
 }
 
-func pageMissing(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Page missing"))
+func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
+	f, err := nfs.fs.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if s.IsDir() {
+		index := filepath.Join(path, "index.html")
+		if _, err := nfs.fs.Open(index); err != nil {
+			closeErr := f.Close()
+			if closeErr != nil {
+				return nil, closeErr
+			}
+
+			return nil, err
+		}
+	}
+
+	return f, nil
 }
 
-func snippetNew(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		// The api will work fine without it but it tells the user what method to use
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	w.Write([]byte("Snippet New\n"))
-}
-
-func snippetView(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil || id < 1 {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
-		return
-	}
-	fmt.Fprintf(w, "Viewing snippet %d", id)
-}
 func main() {
 	mux := http.NewServeMux()
+
+	fileServer := http.FileServer(neuteredFileSystem{http.Dir("./ui/static")})
+	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+
 	mux.HandleFunc("/", home)
 	mux.HandleFunc("/404", pageMissing)
 	mux.HandleFunc("/snippet/new", snippetNew)
